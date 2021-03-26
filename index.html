@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Glücksmobil</title>
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.min.css"
+        />
+        <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.min.js"></script>
+
+        <style type="text/css">
+            body {
+                padding: 0;
+                margin: 0;
+            }
+
+            .heading {
+                display: none;
+            }
+
+            html,
+            body,
+            #map {
+                font-size: large;
+                height: 100%;
+                width: 100vw;
+            }
+
+            .heading {
+                position: fixed;
+                z-index: 999;
+                width: 100vw;
+            }
+
+            .heading > h1 {
+                text-align: center;
+            }
+
+            .marker-name {
+                font-weight: bold;
+                font-size: large;
+                display: inline;
+            }
+
+            .leaflet-marker-icon {
+                fill: #cc756b;
+            }
+
+            .marker-type {
+                color: darkgray;
+            }
+
+            .square {
+                width: 1rem;
+                height: 1rem;
+                display: inline-block;
+                margin-right: 0.2rem;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="heading">
+            <h1>Glücksmobil</h1>
+        </div>
+        <div id="map"></div>
+        <script type="text/javascript">
+            /*                 {
+                    lat: 48.624444444444,
+                    lon: 9.8305555555556,
+                    name: "Geislingen",
+                    type: "",
+                }, */
+            let data = [
+                {
+                    lat: 49.01912,
+                    lon: 12.10228,
+                    name: "Regensburg",
+                    type: 23,
+                },
+                {
+                    lat: 48.76521,
+                    lon: 11.45711,
+                    name: "Ingolstadt",
+                    type: 23,
+                },
+                {
+                    lat: 48.06695,
+                    lon: 11.53883,
+                    name: "München Isar",
+                    type: 23,
+                },
+                {
+                    lat: 48.6854,
+                    lon: 9.77698,
+                    name: "Süßen 1",
+                    type: 23,
+                },
+                {
+                    lat: 48.67764,
+                    lon: 9.76533,
+                    name: "Süßen 2",
+                    type: 23,
+                },
+                {
+                    lat: 48.7498,
+                    lon: 9.72576,
+                    name: "Aasrücken",
+                    type: 60,
+                },
+                {
+                    lat: 48.65339,
+                    lon: 9.77896,
+                    name: "Gingen",
+                    type: 27,
+                },
+                {
+                    lat: 48.14163,
+                    lon: 8.57033,
+                    name: "Eschachtal",
+                    type: 23,
+                },
+                {
+                    lat: 48.34226,
+                    lon: 9.93976,
+                    name: "Gögglingen an der Donau",
+                    type: 23,
+                },
+                {
+                    lat: 48.38319,
+                    lon: 9.98561,
+                    name: "Wohnmobilstellplatz am Donaubad",
+                    type: 27,
+                },
+            ];
+
+            //58: { name: "Picknick/Rastplatz", color: "#3E6EF0", group: 1 },
+            var types = {
+                23: { name: "Parkplatz", color: "#7F2AF7", group: 1 },
+                60: { name: "Stellplatz", color: "#3D32E0", group: 2 },
+                51: { name: "Campingplatz", color: "#2A61F7", group: 2 },
+                79: { name: "Privat", color: "#D5C2EF", group: 2 },
+                87: { name: "Idee", color: "#AAF0BB", group: 3 },
+                27: { name: "Entsorgungstation", color: "green", group: 3 },
+            };
+
+            data.forEach((element) => {
+                if (
+                    !element.type ||
+                    !Object.hasOwnProperty.call(types, element.type)
+                ) {
+                    element.type = 0;
+                    types[0] = { name: "Default", color: "#cc756b" };
+                }
+            });
+
+            var map = L.map("map", {
+                zoomSnap: 0,
+                maxZoom: 16,
+            });
+
+            map.setView([49, 10.5], 7);
+
+            // '<svg version="1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 149 178"><path fill="{mapIconColor}" stroke="#FFF" stroke-width="6" stroke-miterlimit="10" d="M126 23l-6-6A69 69 0 0 0 74 1a69 69 0 0 0-51 22A70 70 0 0 0 1 74c0 21 7 38 22 52l43 47c6 6 11 6 16 0l48-51c12-13 18-29 18-48 0-20-8-37-22-51z"/><circle fill="{mapIconColorInnerCircle}" cx="74" cy="75" r="61"/><circle fill="#FFF" cx="74" cy="75" r="{pinInnerCircleRadius}"/></svg>',
+            divIcon = L.divIcon({
+                className: "leaflet-data-marker",
+                html: L.Util.template(
+                    '<svg version="1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 149 178"><path stroke="#FFF" stroke-width="6" stroke-miterlimit="10" d="M126 23l-6-6A69 69 0 0 0 74 1a69 69 0 0 0-51 22A70 70 0 0 0 1 74c0 21 7 38 22 52l43 47c6 6 11 6 16 0l48-51c12-13 18-29 18-48 0-20-8-37-22-51z"/><circle cx="74" cy="75" r="61"/><circle fill="#FFF" cx="74" cy="75" r="25"/></svg>'
+                ),
+                iconAnchor: [12, 32],
+                iconSize: [25, 30],
+                popupAnchor: [0, -28],
+            });
+
+            for (const key in types) {
+                if (Object.hasOwnProperty.call(types, key)) {
+                    types[key].layerGroup = L.layerGroup();
+                    types[key].Icon = L.divIcon({
+                        className: "leaflet-data-marker",
+                        html: L.Util.template(
+                            '<svg version="1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 149 178"><path fill="' +
+                                types[key].color +
+                                '" stroke="#FFF" stroke-width="6" stroke-miterlimit="10" d="M126 23l-6-6A69 69 0 0 0 74 1a69 69 0 0 0-51 22A70 70 0 0 0 1 74c0 21 7 38 22 52l43 47c6 6 11 6 16 0l48-51c12-13 18-29 18-48 0-20-8-37-22-51z"/><circle cx="74" cy="75" r="61"  fill="' +
+                                types[key].color +
+                                '" /><circle fill="#FFF" cx="74" cy="75" r="25"/></svg>'
+                        ),
+                        iconAnchor: [12, 32],
+                        iconSize: [25, 30],
+                        popupAnchor: [0, -28],
+                    });
+                }
+            }
+
+            data.forEach((element) => {
+                if (!element.type) element.type = 0;
+                let marker = L.marker([element.lat, element.lon])
+                    .addTo(map)
+                    .bindPopup(
+                        '<div class="marker-name">' +
+                            element.name +
+                            '</div><br><div class="marker-type">' +
+                            types[element.type].name +
+                            "</div>"
+                    )
+                    .setIcon(types[element.type].Icon)
+                    .addTo(types[element.type].layerGroup);
+                //.setIcon(divIcon);
+
+                /* if (element.type) {
+                    marker._icon.style.fill = types[element.type].color;
+                    console.log(types[element.type].color);
+                } else {
+                } */
+            });
+
+            //marker.setIcon(divIcon);
+
+            //"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            var openstreetmap = L.tileLayer(
+                "https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png",
+                {
+                    attribution:
+                        '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+                }
+            ).addTo(map);
+
+            //"https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png",
+            var light = L.tileLayer(
+                "https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png",
+                {
+                    attribution:
+                        '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+                    subdomains: "abcd",
+                    maxZoom: 19,
+                }
+            ); //.addTo(map);
+
+            var voyager = L.tileLayer(
+                "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}.png",
+                {
+                    attribution:
+                        '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+                    subdomains: "abcd",
+                    maxZoom: 19,
+                }
+            ); //.addTo(map);
+
+            new L.control.scale({ imperial: false }).addTo(map);
+
+            var baseLayers = {
+                openstreetmap,
+                light,
+                voyager,
+            };
+
+            var overlays = {};
+            var overlayGroups = { 0: {}, 1: {}, 2: {} };
+
+            for (const key in types) {
+                if (Object.hasOwnProperty.call(types, key)) {
+                    let html2 =
+                        '<div style="background: ' +
+                        types[key].color +
+                        ';display: inline;">' +
+                        types[key].name +
+                        "</div>";
+                    let html =
+                        '<div class="square" style="background: ' +
+                        types[key].color +
+                        ';"></div>' +
+                        types[key].name;
+                    overlays[html] = types[key].layerGroup;
+                    map.addLayer(types[key].layerGroup);
+                }
+            }
+
+            L.control
+                .layers(baseLayers, overlays, { collapsed: false })
+                .addTo(map);
+        </script>
+    </body>
+</html>
