@@ -51,7 +51,11 @@
             }
 
             .marker-type {
-                color: darkgray;
+                color: #737373;
+            }
+
+            .marker-stars > img {
+                width: 1rem;
             }
 
             .square {
@@ -81,6 +85,7 @@
                     lon: 11.45711,
                     name: "Ingolstadt",
                     type: 23,
+                    stars: 3,
                 },
                 {
                     lat: 48.06695,
@@ -93,6 +98,7 @@
                     lon: 9.77698,
                     name: "Süßen 1",
                     type: 23,
+                    stars: 1,
                 },
                 {
                     lat: 48.67764,
@@ -105,6 +111,7 @@
                     lon: 9.72576,
                     name: "Aasrücken",
                     type: 60,
+                    stars: 3,
                 },
                 {
                     lat: 48.65339,
@@ -123,6 +130,7 @@
                     lon: 9.93976,
                     name: "Gögglingen an der Donau",
                     type: 23,
+                    stars: 3,
                 },
                 {
                     lat: 48.38319,
@@ -135,6 +143,7 @@
                     lon: 8.52505,
                     name: "Neckarursprung",
                     type: 23,
+                    stars: 3,
                 },
                 {
                     lat: 48.05054,
@@ -162,6 +171,8 @@
                     element.type = 0;
                     types[0] = { name: "Default", color: "#cc756b" };
                 }
+                if (!element.stars && ![27, 0].includes(element.type))
+                    element.stars = 2;
             });
 
             var map = L.map("map", {
@@ -171,7 +182,6 @@
 
             map.setView([49, 10.5], 7);
 
-            // '<svg version="1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 149 178"><path fill="{mapIconColor}" stroke="#FFF" stroke-width="6" stroke-miterlimit="10" d="M126 23l-6-6A69 69 0 0 0 74 1a69 69 0 0 0-51 22A70 70 0 0 0 1 74c0 21 7 38 22 52l43 47c6 6 11 6 16 0l48-51c12-13 18-29 18-48 0-20-8-37-22-51z"/><circle fill="{mapIconColorInnerCircle}" cx="74" cy="75" r="61"/><circle fill="#FFF" cx="74" cy="75" r="{pinInnerCircleRadius}"/></svg>',
             divIcon = L.divIcon({
                 className: "leaflet-data-marker",
                 html: L.Util.template(
@@ -203,15 +213,25 @@
 
             data.forEach((element) => {
                 if (!element.type) element.type = 0;
+
+                let popupHtml =
+                    '<div class="marker-name">' +
+                    element.name +
+                    '</div><div class="marker-type">' +
+                    types[element.type].name +
+                    '</div><div class="marker-stars">';
+                if (element.stars) {
+                    for (let i = 0; i < 3; i++) {
+                        if (i < element.stars)
+                            popupHtml += '<img src="/star_filled.svg">';
+                        else popupHtml += '<img src="/star.svg">';
+                    }
+                }
+                popupHtml += "</div>";
+
                 let marker = L.marker([element.lat, element.lon])
                     .addTo(map)
-                    .bindPopup(
-                        '<div class="marker-name">' +
-                            element.name +
-                            '</div><br><div class="marker-type">' +
-                            types[element.type].name +
-                            "</div>"
-                    )
+                    .bindPopup(popupHtml)
                     .setIcon(types[element.type].Icon)
                     .addTo(types[element.type].layerGroup);
                 //.setIcon(divIcon);
