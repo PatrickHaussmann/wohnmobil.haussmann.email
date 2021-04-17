@@ -72,241 +72,261 @@
             <h1>Wohnmobil</h1>
         </div>
         <div id="map"></div>
+        <script>
+            // from https://gist.github.com/chrisveness/43bcda93af9f646d083fad678071b90a/e40cd0f5237aedcfc4641ad728f119b48f4b5082
+
+            async function aesGcmEncrypt(plaintext, password) {
+                const pwUtf8 = new TextEncoder().encode(password); // encode password as UTF-8
+                const pwHash = await crypto.subtle.digest("SHA-256", pwUtf8); // hash the password
+
+                const iv = crypto.getRandomValues(new Uint8Array(12)); // get 96-bit random iv
+
+                const alg = { name: "AES-GCM", iv: iv }; // specify algorithm to use
+
+                const key = await crypto.subtle.importKey(
+                    "raw",
+                    pwHash,
+                    alg,
+                    false,
+                    ["encrypt"]
+                ); // generate key from pw
+
+                const ptUint8 = new TextEncoder().encode(plaintext); // encode plaintext as UTF-8
+                const ctBuffer = await crypto.subtle.encrypt(alg, key, ptUint8); // encrypt plaintext using key
+
+                const ctArray = Array.from(new Uint8Array(ctBuffer)); // ciphertext as byte array
+                const ctStr = ctArray
+                    .map((byte) => String.fromCharCode(byte))
+                    .join(""); // ciphertext as string
+                const ctBase64 = btoa(ctStr); // encode ciphertext as base64
+
+                const ivHex = Array.from(iv)
+                    .map((b) => ("00" + b.toString(16)).slice(-2))
+                    .join(""); // iv as hex string
+
+                return ivHex + ctBase64; // return iv+ciphertext
+            }
+
+            async function aesGcmDecrypt(ciphertext, password) {
+                const pwUtf8 = new TextEncoder().encode(password); // encode password as UTF-8
+                const pwHash = await crypto.subtle.digest("SHA-256", pwUtf8); // hash the password
+
+                const iv = ciphertext
+                    .slice(0, 24)
+                    .match(/.{2}/g)
+                    .map((byte) => parseInt(byte, 16)); // get iv from ciphertext
+
+                const alg = { name: "AES-GCM", iv: new Uint8Array(iv) }; // specify algorithm to use
+
+                const key = await crypto.subtle.importKey(
+                    "raw",
+                    pwHash,
+                    alg,
+                    false,
+                    ["decrypt"]
+                ); // use pw to generate key
+
+                const ctStr = atob(ciphertext.slice(24)); // decode base64 ciphertext
+                const ctUint8 = new Uint8Array(
+                    ctStr.match(/[\s\S]/g).map((ch) => ch.charCodeAt(0))
+                ); // ciphertext as Uint8Array
+                // note: why doesn't ctUint8 = new TextEncoder().encode(ctStr) work?
+
+                const plainBuffer = await crypto.subtle.decrypt(
+                    alg,
+                    key,
+                    ctUint8
+                ); // decrypt ciphertext using key
+                const plaintext = new TextDecoder().decode(plainBuffer); // decode password from UTF-8
+
+                return plaintext; // return the plaintext
+            }
+        </script>
         <script type="text/javascript">
-            let data = [
-                {
-                    lat: 49.01912,
-                    lon: 12.10228,
-                    name: "Regensburg",
-                    type: 23,
-                },
-                {
-                    lat: 48.76521,
-                    lon: 11.45711,
-                    name: "Ingolstadt",
-                    type: 23,
-                    stars: 3,
-                },
-                {
-                    lat: 48.06695,
-                    lon: 11.53883,
-                    name: "München Isar",
-                    type: 23,
-                },
-                {
-                    lat: 48.6854,
-                    lon: 9.77698,
-                    name: "Süßen 1",
-                    type: 23,
-                    stars: 1,
-                },
-                {
-                    lat: 48.67764,
-                    lon: 9.76533,
-                    name: "Süßen 2",
-                    type: 23,
-                },
-                {
-                    lat: 48.7498,
-                    lon: 9.72576,
-                    name: "Aasrücken",
-                    type: 60,
-                    stars: 3,
-                },
-                {
-                    lat: 48.65339,
-                    lon: 9.77896,
-                    name: "Gingen",
-                    type: 27,
-                },
-                {
-                    lat: 48.14163,
-                    lon: 8.57033,
-                    name: "Eschachtal",
-                    type: 23,
-                },
-                {
-                    lat: 48.34226,
-                    lon: 9.93976,
-                    name: "Gögglingen an der Donau",
-                    type: 23,
-                    stars: 3,
-                },
-                {
-                    lat: 48.38319,
-                    lon: 9.98561,
-                    name: "Donaubad",
-                    type: 27,
-                },
-                {
-                    lat: 48.04445,
-                    lon: 8.52505,
-                    name: "Neckarursprung",
-                    type: 23,
-                    stars: 3,
-                },
-                {
-                    lat: 48.05054,
-                    lon: 8.53463,
-                    name: "Neckarursprung",
-                    type: 60,
-                },
-            ];
+            let encrypted =
+                "848a0aaa9ac516ad10c060d12c8nqZXxAe2jZ0axmQkXZoAUl6nWr9ockZ64ErrhDXWSmNoeRB7GBd9A0ZFjerbWn8N+HHj4y1usym6fqu/+4SZfWuu4HElWBvY49jV0FP7NURgja1TGPl8ljeIoegWivzIr8sMeW6IIKKl4NvVX311a05gNqdJuFEo4RNpt7t9XuSFtkkOsMJPtzuUrwB+5U1rHYUdedsd9yeFvUFCF2VaFpjxIt/ZnG8h98pxqZOW+HXFkbMWcsOOyOiut436yr18/SXsGTGvKzQ4NFKyRYN9hPmgMd7P+nZrAH3FyjpmVIbvfxfSTqx+K5pU0RYSZSefjjrMDZSjJUDjfxbSfLwsesN90d/WHRtsSk8Sf3rLo4235MMxf3LQEfMJPOd8GI6KaaR6G3PpEvAQxJulteXZpodce2mpWD3yVHiMgJ8cPoBXHVPC42tOZCxsvFaHFiLNgube0+rk0nP3W1VVY0vBqVRlSwVcVTY3GdILPgy5FuB0fNoBISXBXtyskn5kWxjojO21DFF7Kdmy/5guPAl4Ng5u2kz9NRnPq8fNe34LPQYrbTByD7DbO0OPI7kFPlgivbfCMHR8kKRsGph6RlsGHQvCIgjCOtdsP8pcN8TlTz04+vi5j7P8b9s4uVp30wkLmRvSPEwgjDh4ggQhPhhTT10EbPYDcnFikdtqnoDPj8gBhfVuJdySBLT6oOqzW08tWgAnKAriIC+nl6D3sqCUM5xAXFChyfoCXtcGXLmiGsKi+suSo3cu1Dhm2dldwb2/U16kz5iYMqxJVtM2Cfq523ArGVCsYqG/0Olu7P0xeb/GLCegvxwoXVl0Al/IkOBJ1rH8H/J9guIqdBp5qZcgKbTgaVj6zOUHjm4xfAXjI6J57q8Drc0M8xkAKkXQXTvV1qUizWicSivBiTFOEqj8qEQq5CKXVtUsKK3IYXJy3zXcnh8wPxwuK/2ejqGJX4fWRuYECoTrduYwvTPn5TcsWP3MrojG9V9D387VBLRi5lJ4ASXwhUSfT9hKSB37c3YymSevtE1VCY6Lio9lypxn5M4MBp74Ys4lgUUzAcfpbi4yrmhbopErh3p5TGYR8CggA3eFMw9i0DrVxU381G1yaAAi0fXuPCe0CBiZvVUp9NZa4bnw7ScQOwSroKi8aCfYxI0zLDCr8Vg+KrSF32iEVekH1u/lL8f/6msuCDGyLR1i3QipS4aamPN7SnsQWxYDLWNU2MUzawSIuC789YrEgSYCU2TRrtiKwZzWIjjcWOA==";
 
-            //58: { name: "Picknick/Rastplatz", color: "#3E6EF0", group: 1 },
-            var types = {
-                23: { name: "Parkplatz", color: "#7F2AF7", group: 1 },
-                60: { name: "Stellplatz", color: "#3D32E0", group: 2 },
-                51: { name: "Campingplatz", color: "#2A61F7", group: 2 },
-                79: { name: "Privat", color: "#D5C2EF", group: 2 },
-                87: { name: "Idee", color: "#AAF0BB", group: 3 },
-                27: { name: "Entsorgungstation", color: "green", group: 3 },
-            };
-
-            data.forEach((element) => {
-                if (
-                    !element.type ||
-                    !Object.hasOwnProperty.call(types, element.type)
-                ) {
-                    element.type = 0;
-                    types[0] = { name: "Default", color: "#cc756b" };
-                }
-                /* if (!element.stars && ![27, 0].includes(element.type))
-                    element.stars = 2; */
-            });
-
-            var map = L.map("map", {
-                zoomSnap: 0,
-                maxZoom: 16,
-            });
-
-            map.setView([49, 10.5], 7);
-
-            divIcon = L.divIcon({
-                className: "leaflet-data-marker",
-                html: L.Util.template(
-                    '<svg version="1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 149 178"><path stroke="#FFF" stroke-width="6" stroke-miterlimit="10" d="M126 23l-6-6A69 69 0 0 0 74 1a69 69 0 0 0-51 22A70 70 0 0 0 1 74c0 21 7 38 22 52l43 47c6 6 11 6 16 0l48-51c12-13 18-29 18-48 0-20-8-37-22-51z"/><circle cx="74" cy="75" r="61"/><circle fill="#FFF" cx="74" cy="75" r="25"/></svg>'
-                ),
-                iconAnchor: [12, 32],
-                iconSize: [25, 30],
-                popupAnchor: [0, -28],
-            });
-
-            for (const key in types) {
-                if (Object.hasOwnProperty.call(types, key)) {
-                    types[key].layerGroup = L.layerGroup();
-                    types[key].Icon = L.divIcon({
-                        className: "leaflet-data-marker",
-                        html: L.Util.template(
-                            '<svg version="1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 149 178"><path fill="' +
-                                types[key].color +
-                                '" stroke="#FFF" stroke-width="6" stroke-miterlimit="10" d="M126 23l-6-6A69 69 0 0 0 74 1a69 69 0 0 0-51 22A70 70 0 0 0 1 74c0 21 7 38 22 52l43 47c6 6 11 6 16 0l48-51c12-13 18-29 18-48 0-20-8-37-22-51z"/><circle cx="74" cy="75" r="61"  fill="' +
-                                types[key].color +
-                                '" /><circle fill="#FFF" cx="74" cy="75" r="25"/></svg>'
-                        ),
-                        iconAnchor: [12, 32],
-                        iconSize: [25, 30],
-                        popupAnchor: [0, -28],
+            function decrypt(password) {
+                aesGcmDecrypt(encrypted, password)
+                    .then((plaintext) => {
+                        let decrypted = JSON.parse(plaintext);
+                        initMap(decrypted);
+                    })
+                    .catch((error) => {
+                        console.error(error);
+                        localStorage.removeItem("password");
+                        alert("Passwort falsch!");
                     });
+            }
+
+            if (localStorage.getItem("password")) {
+                decrypt(localStorage.getItem("password"));
+            } else {
+                let input = prompt("Passwort:");
+                if (input != null && input != "") {
+                    console.log(input);
+                    input = input.trim();
+                    localStorage.setItem("password", input);
+                    decrypt(input);
                 }
             }
 
-            data.forEach((element) => {
-                if (!element.type) element.type = 0;
+            function initMap(data) {
+                //58: { name: "Picknick/Rastplatz", color: "#3E6EF0", group: 1 },
+                var types = {
+                    23: { name: "Parkplatz", color: "#7F2AF7", group: 1 },
+                    60: { name: "Stellplatz", color: "#3D32E0", group: 2 },
+                    51: { name: "Campingplatz", color: "#2A61F7", group: 2 },
+                    79: { name: "Privat", color: "#D5C2EF", group: 2 },
+                    87: { name: "Idee", color: "#AAF0BB", group: 3 },
+                    27: { name: "Entsorgungstation", color: "green", group: 3 },
+                };
 
-                let popupHtml =
-                    '<div class="marker-name">' +
-                    element.name +
-                    '</div><div class="marker-type">' +
-                    types[element.type].name +
-                    '</div><div class="marker-stars">';
-                if (element.stars) {
-                    for (let i = 0; i < 3; i++) {
-                        if (i < element.stars)
-                            popupHtml += '<img src="/star_filled.svg">';
-                        else popupHtml += '<img src="/star.svg">';
+                data.forEach((element) => {
+                    if (
+                        !element.type ||
+                        !Object.hasOwnProperty.call(types, element.type)
+                    ) {
+                        element.type = 0;
+                        types[0] = { name: "Default", color: "#cc756b" };
+                    }
+                    /* if (!element.stars && ![27, 0].includes(element.type))
+                    element.stars = 2; */
+                });
+
+                var map = L.map("map", {
+                    zoomSnap: 0,
+                    maxZoom: 16,
+                });
+
+                map.setView([49, 10.5], 7);
+
+                divIcon = L.divIcon({
+                    className: "leaflet-data-marker",
+                    html: L.Util.template(
+                        '<svg version="1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 149 178"><path stroke="#FFF" stroke-width="6" stroke-miterlimit="10" d="M126 23l-6-6A69 69 0 0 0 74 1a69 69 0 0 0-51 22A70 70 0 0 0 1 74c0 21 7 38 22 52l43 47c6 6 11 6 16 0l48-51c12-13 18-29 18-48 0-20-8-37-22-51z"/><circle cx="74" cy="75" r="61"/><circle fill="#FFF" cx="74" cy="75" r="25"/></svg>'
+                    ),
+                    iconAnchor: [12, 32],
+                    iconSize: [25, 30],
+                    popupAnchor: [0, -28],
+                });
+
+                for (const key in types) {
+                    if (Object.hasOwnProperty.call(types, key)) {
+                        types[key].layerGroup = L.layerGroup();
+                        types[key].Icon = L.divIcon({
+                            className: "leaflet-data-marker",
+                            html: L.Util.template(
+                                '<svg version="1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 149 178"><path fill="' +
+                                    types[key].color +
+                                    '" stroke="#FFF" stroke-width="6" stroke-miterlimit="10" d="M126 23l-6-6A69 69 0 0 0 74 1a69 69 0 0 0-51 22A70 70 0 0 0 1 74c0 21 7 38 22 52l43 47c6 6 11 6 16 0l48-51c12-13 18-29 18-48 0-20-8-37-22-51z"/><circle cx="74" cy="75" r="61"  fill="' +
+                                    types[key].color +
+                                    '" /><circle fill="#FFF" cx="74" cy="75" r="25"/></svg>'
+                            ),
+                            iconAnchor: [12, 32],
+                            iconSize: [25, 30],
+                            popupAnchor: [0, -28],
+                        });
                     }
                 }
-                popupHtml += "</div>";
 
-                let marker = L.marker([element.lat, element.lon])
-                    .addTo(map)
-                    .bindPopup(popupHtml)
-                    .setIcon(types[element.type].Icon)
-                    .addTo(types[element.type].layerGroup);
-                //.setIcon(divIcon);
+                data.forEach((element) => {
+                    if (!element.type) element.type = 0;
 
-                /* if (element.type) {
+                    let popupHtml =
+                        '<div class="marker-name">' +
+                        element.name +
+                        '</div><div class="marker-type">' +
+                        types[element.type].name +
+                        '</div><div class="marker-stars">';
+                    if (element.stars) {
+                        for (let i = 0; i < 3; i++) {
+                            if (i < element.stars)
+                                popupHtml += '<img src="/star_filled.svg">';
+                            else popupHtml += '<img src="/star.svg">';
+                        }
+                    }
+                    popupHtml += "</div>";
+
+                    let marker = L.marker([element.lat, element.lon])
+                        .addTo(map)
+                        .bindPopup(popupHtml)
+                        .setIcon(types[element.type].Icon)
+                        .addTo(types[element.type].layerGroup);
+                    //.setIcon(divIcon);
+
+                    /* if (element.type) {
                     marker._icon.style.fill = types[element.type].color;
                     console.log(types[element.type].color);
                 } else {
                 } */
-            });
+                });
 
-            //marker.setIcon(divIcon);
+                //marker.setIcon(divIcon);
 
-            //"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            var openstreetmap = L.tileLayer(
-                "https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png",
-                {
-                    attribution:
-                        '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+                //"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                var openstreetmap = L.tileLayer(
+                    "https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png",
+                    {
+                        attribution:
+                            '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+                    }
+                ).addTo(map);
+
+                //"https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png",
+                var light = L.tileLayer(
+                    "https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png",
+                    {
+                        attribution:
+                            '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+                        subdomains: "abcd",
+                        maxZoom: 19,
+                    }
+                ); //.addTo(map);
+
+                var voyager = L.tileLayer(
+                    "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}.png",
+                    {
+                        attribution:
+                            '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+                        subdomains: "abcd",
+                        maxZoom: 19,
+                    }
+                ); //.addTo(map);
+
+                new L.control.scale({ imperial: false }).addTo(map);
+
+                var baseLayers = {
+                    openstreetmap,
+                    light,
+                    voyager,
+                };
+
+                var overlays = {};
+                var overlayGroups = { 0: {}, 1: {}, 2: {} };
+
+                for (const key in types) {
+                    if (Object.hasOwnProperty.call(types, key)) {
+                        let html2 =
+                            '<div style="background: ' +
+                            types[key].color +
+                            ';display: inline;">' +
+                            types[key].name +
+                            "</div>";
+                        let html =
+                            '<div class="square" style="background: ' +
+                            types[key].color +
+                            ';"></div>' +
+                            types[key].name;
+                        overlays[html] = types[key].layerGroup;
+                        map.addLayer(types[key].layerGroup);
+                    }
                 }
-            ).addTo(map);
 
-            //"https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png",
-            var light = L.tileLayer(
-                "https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png",
-                {
-                    attribution:
-                        '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
-                    subdomains: "abcd",
-                    maxZoom: 19,
-                }
-            ); //.addTo(map);
-
-            var voyager = L.tileLayer(
-                "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}.png",
-                {
-                    attribution:
-                        '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
-                    subdomains: "abcd",
-                    maxZoom: 19,
-                }
-            ); //.addTo(map);
-
-            new L.control.scale({ imperial: false }).addTo(map);
-
-            var baseLayers = {
-                openstreetmap,
-                light,
-                voyager,
-            };
-
-            var overlays = {};
-            var overlayGroups = { 0: {}, 1: {}, 2: {} };
-
-            for (const key in types) {
-                if (Object.hasOwnProperty.call(types, key)) {
-                    let html2 =
-                        '<div style="background: ' +
-                        types[key].color +
-                        ';display: inline;">' +
-                        types[key].name +
-                        "</div>";
-                    let html =
-                        '<div class="square" style="background: ' +
-                        types[key].color +
-                        ';"></div>' +
-                        types[key].name;
-                    overlays[html] = types[key].layerGroup;
-                    map.addLayer(types[key].layerGroup);
-                }
+                L.control
+                    .layers(baseLayers, overlays, { collapsed: false })
+                    .addTo(map);
             }
-
-            L.control
-                .layers(baseLayers, overlays, { collapsed: false })
-                .addTo(map);
         </script>
     </body>
 </html>
