@@ -1,332 +1,316 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Wohnmobil</title>
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-        />
-        <link
-            rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.min.css"
-        />
-        <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.min.js"></script>
+  <head>
+    <title>Wohnmobil</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.min.js"></script>
 
-        <style type="text/css">
-            body {
-                padding: 0;
-                margin: 0;
-            }
+    <style type="text/css">
+      body {
+        padding: 0;
+        margin: 0;
+      }
 
-            .heading {
-                display: none;
-            }
+      .heading {
+        display: none;
+      }
 
-            html,
-            body,
-            #map {
-                font-size: large;
-                height: 100%;
-                width: 100vw;
-            }
+      html,
+      body,
+      #map {
+        font-size: large;
+        height: 100%;
+        width: 100vw;
+      }
 
-            .heading {
-                position: fixed;
-                z-index: 999;
-                width: 100vw;
-            }
+      .heading {
+        position: fixed;
+        z-index: 999;
+        width: 100vw;
+      }
 
-            .heading > h1 {
-                text-align: center;
-            }
+      .heading > h1 {
+        text-align: center;
+      }
 
-            .marker-name {
-                font-weight: bold;
-                font-size: large;
-                display: inline;
-            }
+      .marker-name {
+        font-weight: bold;
+        font-size: large;
+        display: inline;
+      }
 
-            .leaflet-marker-icon {
-                fill: #cc756b;
-            }
+      .leaflet-marker-icon {
+        fill: #cc756b;
+      }
 
-            .marker-type {
-                color: #737373;
-            }
+      .marker-type {
+        color: #737373;
+      }
 
-            .marker-stars > img {
-                width: 1rem;
-            }
+      .marker-stars > img {
+        width: 1rem;
+      }
 
-            .square {
-                width: 1rem;
-                height: 1rem;
-                display: inline-block;
-                margin-right: 0.2rem;
-            }
-        </style>
-    </head>
+      .square {
+        width: 1rem;
+        height: 1rem;
+        display: inline-block;
+        margin-right: 0.2rem;
+      }
+    </style>
+  </head>
 
-    <body>
-        <div class="heading">
-            <h1>Wohnmobil</h1>
-        </div>
-        <div id="map"></div>
-        <script>
-            // from https://gist.github.com/chrisveness/43bcda93af9f646d083fad678071b90a/e40cd0f5237aedcfc4641ad728f119b48f4b5082
+  <body>
+    <div class="heading">
+      <h1>Wohnmobil</h1>
+    </div>
+    <div id="map"></div>
+    <script>
+      // from https://gist.github.com/chrisveness/43bcda93af9f646d083fad678071b90a/e40cd0f5237aedcfc4641ad728f119b48f4b5082
 
-            async function aesGcmEncrypt(plaintext, password) {
-                const pwUtf8 = new TextEncoder().encode(password); // encode password as UTF-8
-                const pwHash = await crypto.subtle.digest("SHA-256", pwUtf8); // hash the password
+      async function aesGcmEncrypt(plaintext, password) {
+        const pwUtf8 = new TextEncoder().encode(password); // encode password as UTF-8
+        const pwHash = await crypto.subtle.digest("SHA-256", pwUtf8); // hash the password
 
-                const iv = crypto.getRandomValues(new Uint8Array(12)); // get 96-bit random iv
+        const iv = crypto.getRandomValues(new Uint8Array(12)); // get 96-bit random iv
 
-                const alg = { name: "AES-GCM", iv: iv }; // specify algorithm to use
+        const alg = { name: "AES-GCM", iv: iv }; // specify algorithm to use
 
-                const key = await crypto.subtle.importKey(
-                    "raw",
-                    pwHash,
-                    alg,
-                    false,
-                    ["encrypt"]
-                ); // generate key from pw
+        const key = await crypto.subtle.importKey("raw", pwHash, alg, false, [
+          "encrypt",
+        ]); // generate key from pw
 
-                const ptUint8 = new TextEncoder().encode(plaintext); // encode plaintext as UTF-8
-                const ctBuffer = await crypto.subtle.encrypt(alg, key, ptUint8); // encrypt plaintext using key
+        const ptUint8 = new TextEncoder().encode(plaintext); // encode plaintext as UTF-8
+        const ctBuffer = await crypto.subtle.encrypt(alg, key, ptUint8); // encrypt plaintext using key
 
-                const ctArray = Array.from(new Uint8Array(ctBuffer)); // ciphertext as byte array
-                const ctStr = ctArray
-                    .map((byte) => String.fromCharCode(byte))
-                    .join(""); // ciphertext as string
-                const ctBase64 = btoa(ctStr); // encode ciphertext as base64
+        const ctArray = Array.from(new Uint8Array(ctBuffer)); // ciphertext as byte array
+        const ctStr = ctArray.map((byte) => String.fromCharCode(byte)).join(""); // ciphertext as string
+        const ctBase64 = btoa(ctStr); // encode ciphertext as base64
 
-                const ivHex = Array.from(iv)
-                    .map((b) => ("00" + b.toString(16)).slice(-2))
-                    .join(""); // iv as hex string
+        const ivHex = Array.from(iv)
+          .map((b) => ("00" + b.toString(16)).slice(-2))
+          .join(""); // iv as hex string
 
-                return ivHex + ctBase64; // return iv+ciphertext
-            }
+        return ivHex + ctBase64; // return iv+ciphertext
+      }
 
-            async function aesGcmDecrypt(ciphertext, password) {
-                const pwUtf8 = new TextEncoder().encode(password); // encode password as UTF-8
-                const pwHash = await crypto.subtle.digest("SHA-256", pwUtf8); // hash the password
+      async function aesGcmDecrypt(ciphertext, password) {
+        const pwUtf8 = new TextEncoder().encode(password); // encode password as UTF-8
+        const pwHash = await crypto.subtle.digest("SHA-256", pwUtf8); // hash the password
 
-                const iv = ciphertext
-                    .slice(0, 24)
-                    .match(/.{2}/g)
-                    .map((byte) => parseInt(byte, 16)); // get iv from ciphertext
+        const iv = ciphertext
+          .slice(0, 24)
+          .match(/.{2}/g)
+          .map((byte) => parseInt(byte, 16)); // get iv from ciphertext
 
-                const alg = { name: "AES-GCM", iv: new Uint8Array(iv) }; // specify algorithm to use
+        const alg = { name: "AES-GCM", iv: new Uint8Array(iv) }; // specify algorithm to use
 
-                const key = await crypto.subtle.importKey(
-                    "raw",
-                    pwHash,
-                    alg,
-                    false,
-                    ["decrypt"]
-                ); // use pw to generate key
+        const key = await crypto.subtle.importKey("raw", pwHash, alg, false, [
+          "decrypt",
+        ]); // use pw to generate key
 
-                const ctStr = atob(ciphertext.slice(24)); // decode base64 ciphertext
-                const ctUint8 = new Uint8Array(
-                    ctStr.match(/[\s\S]/g).map((ch) => ch.charCodeAt(0))
-                ); // ciphertext as Uint8Array
-                // note: why doesn't ctUint8 = new TextEncoder().encode(ctStr) work?
+        const ctStr = atob(ciphertext.slice(24)); // decode base64 ciphertext
+        const ctUint8 = new Uint8Array(
+          ctStr.match(/[\s\S]/g).map((ch) => ch.charCodeAt(0))
+        ); // ciphertext as Uint8Array
+        // note: why doesn't ctUint8 = new TextEncoder().encode(ctStr) work?
 
-                const plainBuffer = await crypto.subtle.decrypt(
-                    alg,
-                    key,
-                    ctUint8
-                ); // decrypt ciphertext using key
-                const plaintext = new TextDecoder().decode(plainBuffer); // decode password from UTF-8
+        const plainBuffer = await crypto.subtle.decrypt(alg, key, ctUint8); // decrypt ciphertext using key
+        const plaintext = new TextDecoder().decode(plainBuffer); // decode password from UTF-8
 
-                return plaintext; // return the plaintext
-            }
-        </script>
-        <script type="text/javascript">
-            let encrypted =
-                "cbde2bf8d141edf69ab3b9b6nhtwSSWxWJ+PieSjTXgyomJBwj5yWmDdaf52GVGPGKQsyIjvFVzQXIsiHz37avL115I7sUdQQ7a0nh0YWOTtKtA9DD+WCtXn6nMQu1cAkokjPcgp41ZvFZBv/UrNb6vqVZpJvcXCq+1a7ksZ08K1DSkkW1NJVPorh5nlmnqvGcpMIucAvi0pLWgp71zdmbJE/0EVvfwwxo2+mfxFOt9W+vVXo0B57XTgD5QF6MjVhQg5nAd0fFAp19JV/Y6KisMrLUxAkrFOCDe8xcomAJItY+baO+jrmbaLMWxGyPhPnCEcAIzA8tZBNsNgu9fRanhksrA6pBYfwJFkJJuRkA8KluHOwiRI3QfeptdOnNIsUhsDpl7JULXb4ohvTD0f1r0KKmitM7UAD9HLKnNDcEoqOeLnYLrChq/VAr/mkYjJeLv9AzgDVCONj9FmnfSdXChahfesB0cB7RLk2IgNepfFiMKF3bvx6+bWvFxVEK00lAujtXazkJbyGLDQhy6ZNNSJqGEsT+o2hn9EecWQfLYFwaSZmgplCFbfAJuXN1yPFU9zNO0pQEN/ifqC1bC8feVt7Gzs87IhQBvguwRe82OrcUPEBvDdwg+6MjsOborcZqkvCXr3GLXjq0YQA8QYp3UpJmV+SRx/36cNOatyMljmf5syCLRvazVBKVbG1AwOdVpSzGqH7WzuayD768acQ4sMyHW5S/0B39gAHoBmkfM67GWdu9PE/Wa6DH82byZh6VkMD7Bbpj8nkiCe/ckqgghRD7aQICX71ZMXIZqtjjUFPExz7Jcwy608VZ8+TDhhmbEjqqy1rMOxi/MxCFNConnPiKNG+55dSU3dQl6BApgDFtpm+3ZWnocSJt1QtDaxP3i4re8Md/dl5/b5W09e0d9ItLAUcHhVo8yGvsUkuhrVRHo6+cbcqDgWQ4VoijBKOBfbqD9ngNpNK/auPkL5IUEL0IPyTdy+BsS3PrU6I651AX/xSMWV71WgFCqGYL+N6rjfpngFogZM1zRsKiUbxENmnxwKOR8KZCSxlOVGU1sAInhSZPTwtomPAKvhTw7W5L9+rBldP0u4S0XXy/ZDxjmSmLSkkmao3cC13Zd7/dWDGWrqkDlx5DcaMuClNkQB51TBB1VHLmvQYQ9H35ac1sYpaeG+cngNzgR1++BrCQOxHAVAj6ZPzmKUHZZq6rph8F4Qc0QYdPmsNJuXSipGVDEWyOi4AcgIMAWkGJ1z1uSE8prCu2cCv6KW7h6DckNW6bX3H+/2EIC8vzgNEG3WNQ0yBhw4Kz42q7edknLuqmH0TrtNn25zzDYCJH12Ro2MO6Ho2T9Usyc+gxbXxUIv4VCgk164wTbP7w==";
+        return plaintext; // return the plaintext
+      }
+    </script>
+    <script type="text/javascript">
+      let encrypted =
+        "cbde2bf8d141edf69ab3b9b6nhtwSSWxWJ+PieSjTXgyomJBwj5yWmDdaf52GVGPGKQsyIjvFVzQXIsiHz37avL115I7sUdQQ7a0nh0YWOTtKtA9DD+WCtXn6nMQu1cAkokjPcgp41ZvFZBv/UrNb6vqVZpJvcXCq+1a7ksZ08K1DSkkW1NJVPorh5nlmnqvGcpMIucAvi0pLWgp71zdmbJE/0EVvfwwxo2+mfxFOt9W+vVXo0B57XTgD5QF6MjVhQg5nAd0fFAp19JV/Y6KisMrLUxAkrFOCDe8xcomAJItY+baO+jrmbaLMWxGyPhPnCEcAIzA8tZBNsNgu9fRanhksrA6pBYfwJFkJJuRkA8KluHOwiRI3QfeptdOnNIsUhsDpl7JULXb4ohvTD0f1r0KKmitM7UAD9HLKnNDcEoqOeLnYLrChq/VAr/mkYjJeLv9AzgDVCONj9FmnfSdXChahfesB0cB7RLk2IgNepfFiMKF3bvx6+bWvFxVEK00lAujtXazkJbyGLDQhy6ZNNSJqGEsT+o2hn9EecWQfLYFwaSZmgplCFbfAJuXN1yPFU9zNO0pQEN/ifqC1bC8feVt7Gzs87IhQBvguwRe82OrcUPEBvDdwg+6MjsOborcZqkvCXr3GLXjq0YQA8QYp3UpJmV+SRx/36cNOatyMljmf5syCLRvazVBKVbG1AwOdVpSzGqH7WzuayD768acQ4sMyHW5S/0B39gAHoBmkfM67GWdu9PE/Wa6DH82byZh6VkMD7Bbpj8nkiCe/ckqgghRD7aQICX71ZMXIZqtjjUFPExz7Jcwy608VZ8+TDhhmbEjqqy1rMOxi/MxCFNConnPiKNG+55dSU3dQl6BApgDFtpm+3ZWnocSJt1QtDaxP3i4re8Md/dl5/b5W09e0d9ItLAUcHhVo8yGvsUkuhrVRHo6+cbcqDgWQ4VoijBKOBfbqD9ngNpNK/auPkL5IUEL0IPyTdy+BsS3PrU6I651AX/xSMWV71WgFCqGYL+N6rjfpngFogZM1zRsKiUbxENmnxwKOR8KZCSxlOVGU1sAInhSZPTwtomPAKvhTw7W5L9+rBldP0u4S0XXy/ZDxjmSmLSkkmao3cC13Zd7/dWDGWrqkDlx5DcaMuClNkQB51TBB1VHLmvQYQ9H35ac1sYpaeG+cngNzgR1++BrCQOxHAVAj6ZPzmKUHZZq6rph8F4Qc0QYdPmsNJuXSipGVDEWyOi4AcgIMAWkGJ1z1uSE8prCu2cCv6KW7h6DckNW6bX3H+/2EIC8vzgNEG3WNQ0yBhw4Kz42q7edknLuqmH0TrtNn25zzDYCJH12Ro2MO6Ho2T9Usyc+gxbXxUIv4VCgk164wTbP7w==";
 
-            function decrypt(password) {
-                aesGcmDecrypt(encrypted, password)
-                    .then((plaintext) => {
-                        let decrypted = JSON.parse(plaintext);
-                        initMap(decrypted);
-                    })
-                    .catch((error) => {
-                        console.error(error);
-                        localStorage.removeItem("password");
-                        alert("Passwort falsch!");
-                    });
-            }
+      function decrypt(password) {
+        aesGcmDecrypt(encrypted, password)
+          .then((plaintext) => {
+            let decrypted = JSON.parse(plaintext);
+            initMap(decrypted);
+          })
+          .catch((error) => {
+            console.error(error);
+            localStorage.removeItem("password");
+            alert("Passwort falsch!");
+          });
+      }
 
-            if (localStorage.getItem("password")) {
-                decrypt(localStorage.getItem("password"));
-            } else {
-                let input = prompt("Passwort:");
-                if (input != null && input != "") {
-                    console.log(input);
-                    input = input.trim();
-                    localStorage.setItem("password", input);
-                    decrypt(input);
-                }
-            }
+      if (localStorage.getItem("password")) {
+        decrypt(localStorage.getItem("password"));
+      } else {
+        let input = prompt("Passwort:");
+        if (input != null && input != "") {
+          console.log(input);
+          input = input.trim();
+          localStorage.setItem("password", input);
+          decrypt(input);
+        }
+      }
 
-            function initMap(data) {
-                //58: { name: "Picknick/Rastplatz", color: "#3E6EF0", group: 1 },
-                var types = {
-                    23: { name: "Parkplatz", color: "#7F2AF7", group: 1 },
-                    60: { name: "Stellplatz", color: "#3D32E0", group: 2 },
-                    51: { name: "Campingplatz", color: "#2A61F7", group: 2 },
-                    79: { name: "Privat", color: "#D5C2EF", group: 2 },
-                    87: { name: "Idee", color: "#AAF0BB", group: 3 },
-                    27: { name: "Entsorgungstation", color: "green", group: 3 },
-                };
+      function initMap(data) {
+        //58: { name: "Picknick/Rastplatz", color: "#3E6EF0", group: 1 },
+        var types = {
+          23: { name: "Parkplatz", color: "#7F2AF7", group: 1 },
+          60: { name: "Stellplatz", color: "#3D32E0", group: 2 },
+          51: { name: "Campingplatz", color: "#2A61F7", group: 2 },
+          79: { name: "Privat", color: "#D5C2EF", group: 2 },
+          87: { name: "Idee", color: "#AAF0BB", group: 3 },
+          27: { name: "Entsorgungstation", color: "green", group: 3 },
+        };
 
-                data.forEach((element) => {
-                    if (
-                        !element.type ||
-                        !Object.hasOwnProperty.call(types, element.type)
-                    ) {
-                        element.type = 0;
-                        types[0] = { name: "Default", color: "#cc756b" };
-                    }
-                    /* if (!element.stars && ![27, 0].includes(element.type))
+        data.forEach((element) => {
+          if (
+            !element.type ||
+            !Object.hasOwnProperty.call(types, element.type)
+          ) {
+            element.type = 0;
+            types[0] = { name: "Default", color: "#cc756b" };
+          }
+          /* if (!element.stars && ![27, 0].includes(element.type))
                     element.stars = 2; */
-                });
+        });
 
-                var map = L.map("map", {
-                    zoomSnap: 0,
-                    maxZoom: 16,
-                });
+        var map = L.map("map", {
+          zoomSnap: 0,
+          maxZoom: 16,
+        });
 
-                map.setView([49, 10.5], 7);
+        map.setView([49, 10.5], 7);
 
-                divIcon = L.divIcon({
-                    className: "leaflet-data-marker",
-                    html: L.Util.template(
-                        '<svg version="1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 149 178"><path stroke="#FFF" stroke-width="6" stroke-miterlimit="10" d="M126 23l-6-6A69 69 0 0 0 74 1a69 69 0 0 0-51 22A70 70 0 0 0 1 74c0 21 7 38 22 52l43 47c6 6 11 6 16 0l48-51c12-13 18-29 18-48 0-20-8-37-22-51z"/><circle cx="74" cy="75" r="61"/><circle fill="#FFF" cx="74" cy="75" r="25"/></svg>'
-                    ),
-                    iconAnchor: [12, 32],
-                    iconSize: [25, 30],
-                    popupAnchor: [0, -28],
-                });
+        divIcon = L.divIcon({
+          className: "leaflet-data-marker",
+          html: L.Util.template(
+            '<svg version="1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 149 178"><path stroke="#FFF" stroke-width="6" stroke-miterlimit="10" d="M126 23l-6-6A69 69 0 0 0 74 1a69 69 0 0 0-51 22A70 70 0 0 0 1 74c0 21 7 38 22 52l43 47c6 6 11 6 16 0l48-51c12-13 18-29 18-48 0-20-8-37-22-51z"/><circle cx="74" cy="75" r="61"/><circle fill="#FFF" cx="74" cy="75" r="25"/></svg>'
+          ),
+          iconAnchor: [12, 32],
+          iconSize: [25, 30],
+          popupAnchor: [0, -28],
+        });
 
-                for (const key in types) {
-                    if (Object.hasOwnProperty.call(types, key)) {
-                        types[key].layerGroup = L.layerGroup();
-                        types[key].Icon = L.divIcon({
-                            className: "leaflet-data-marker",
-                            html: L.Util.template(
-                                '<svg version="1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 149 178"><path fill="' +
-                                    types[key].color +
-                                    '" stroke="#FFF" stroke-width="6" stroke-miterlimit="10" d="M126 23l-6-6A69 69 0 0 0 74 1a69 69 0 0 0-51 22A70 70 0 0 0 1 74c0 21 7 38 22 52l43 47c6 6 11 6 16 0l48-51c12-13 18-29 18-48 0-20-8-37-22-51z"/><circle cx="74" cy="75" r="61"  fill="' +
-                                    types[key].color +
-                                    '" /><circle fill="#FFF" cx="74" cy="75" r="25"/></svg>'
-                            ),
-                            iconAnchor: [12, 32],
-                            iconSize: [25, 30],
-                            popupAnchor: [0, -28],
-                        });
-                    }
-                }
+        for (const key in types) {
+          if (Object.hasOwnProperty.call(types, key)) {
+            types[key].layerGroup = L.layerGroup();
+            types[key].Icon = L.divIcon({
+              className: "leaflet-data-marker",
+              html: L.Util.template(
+                '<svg version="1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 149 178"><path fill="' +
+                  types[key].color +
+                  '" stroke="#FFF" stroke-width="6" stroke-miterlimit="10" d="M126 23l-6-6A69 69 0 0 0 74 1a69 69 0 0 0-51 22A70 70 0 0 0 1 74c0 21 7 38 22 52l43 47c6 6 11 6 16 0l48-51c12-13 18-29 18-48 0-20-8-37-22-51z"/><circle cx="74" cy="75" r="61"  fill="' +
+                  types[key].color +
+                  '" /><circle fill="#FFF" cx="74" cy="75" r="25"/></svg>'
+              ),
+              iconAnchor: [12, 32],
+              iconSize: [25, 30],
+              popupAnchor: [0, -28],
+            });
+          }
+        }
 
-                data.forEach((element) => {
-                    if (!element.type) element.type = 0;
+        data.forEach((element) => {
+          if (!element.type) element.type = 0;
 
-                    let popupHtml =
-                        '<div class="marker-name">' +
-                        element.name +
-                        '</div><div class="marker-type">' +
-                        types[element.type].name +
-                        '</div><div class="marker-stars">';
-                    if (element.stars) {
-                        for (let i = 0; i < 3; i++) {
-                            if (i < element.stars)
-                                popupHtml += '<img src="/star_filled.svg">';
-                            else popupHtml += '<img src="/star.svg">';
-                        }
-                    }
-                    popupHtml += "</div>";
+          let popupHtml =
+            '<div class="marker-name">' +
+            element.name +
+            '</div><div class="marker-type">' +
+            types[element.type].name +
+            '</div><div class="marker-stars">';
+          if (element.stars) {
+            for (let i = 0; i < 3; i++) {
+              if (i < element.stars)
+                popupHtml += '<img src="/star_filled.svg">';
+              else popupHtml += '<img src="/star.svg">';
+            }
+          }
+          popupHtml += "</div>";
 
-                    let marker = L.marker([element.lat, element.lon])
-                        .addTo(map)
-                        .bindPopup(popupHtml)
-                        .setIcon(types[element.type].Icon)
-                        .addTo(types[element.type].layerGroup);
-                    //.setIcon(divIcon);
+          let marker = L.marker([element.lat, element.lon])
+            .addTo(map)
+            .bindPopup(popupHtml)
+            .setIcon(types[element.type].Icon)
+            .addTo(types[element.type].layerGroup);
+          //.setIcon(divIcon);
 
-                    /* if (element.type) {
+          /* if (element.type) {
                     marker._icon.style.fill = types[element.type].color;
                     console.log(types[element.type].color);
                 } else {
                 } */
-                });
+        });
 
-                //marker.setIcon(divIcon);
+        //marker.setIcon(divIcon);
 
-                //"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                var openstreetmap = L.tileLayer(
-                    "https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png",
-                    {
-                        attribution:
-                            '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>',
-                    }
-                ).addTo(map);
+        //"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        var openstreetmap = L.tileLayer(
+          "https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png",
+          {
+            attribution:
+              '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+          }
+        ).addTo(map);
 
-                //"https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png",
-                var light = L.tileLayer(
-                    "https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png",
-                    {
-                        attribution:
-                            '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
-                        subdomains: "abcd",
-                        maxZoom: 19,
-                    }
-                ); //.addTo(map);
+        //"https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png",
+        var light = L.tileLayer(
+          "https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png",
+          {
+            attribution:
+              '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+            subdomains: "abcd",
+            maxZoom: 19,
+          }
+        ); //.addTo(map);
 
-                var voyager = L.tileLayer(
-                    "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}.png",
-                    {
-                        attribution:
-                            '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
-                        subdomains: "abcd",
-                        maxZoom: 19,
-                    }
-                ); //.addTo(map);
+        var voyager = L.tileLayer(
+          "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}.png",
+          {
+            attribution:
+              '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+            subdomains: "abcd",
+            maxZoom: 19,
+          }
+        ); //.addTo(map);
 
-                new L.control.scale({ imperial: false }).addTo(map);
+        new L.control.scale({ imperial: false }).addTo(map);
 
-                var baseLayers = {
-                    openstreetmap,
-                    light,
-                    voyager,
-                };
+        var baseLayers = {
+          openstreetmap,
+          light,
+          voyager,
+        };
 
-                var overlays = {};
-                var overlayGroups = { 0: {}, 1: {}, 2: {} };
+        var overlays = {};
+        var overlayGroups = { 0: {}, 1: {}, 2: {} };
 
-                for (const key in types) {
-                    if (Object.hasOwnProperty.call(types, key)) {
-                        let html2 =
-                            '<div style="background: ' +
-                            types[key].color +
-                            ';display: inline;">' +
-                            types[key].name +
-                            "</div>";
-                        let html =
-                            '<div class="square" style="background: ' +
-                            types[key].color +
-                            ';"></div>' +
-                            types[key].name;
-                        overlays[html] = types[key].layerGroup;
-                        map.addLayer(types[key].layerGroup);
-                    }
-                }
+        for (const key in types) {
+          if (Object.hasOwnProperty.call(types, key)) {
+            let html2 =
+              '<div style="background: ' +
+              types[key].color +
+              ';display: inline;">' +
+              types[key].name +
+              "</div>";
+            let html =
+              '<div class="square" style="background: ' +
+              types[key].color +
+              ';"></div>' +
+              types[key].name;
+            overlays[html] = types[key].layerGroup;
+            map.addLayer(types[key].layerGroup);
+          }
+        }
 
-                L.control
-                    .layers(baseLayers, overlays, { collapsed: false })
-                    .addTo(map);
-            }
-        </script>
-    </body>
+        L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
+      }
+    </script>
+  </body>
 </html>
