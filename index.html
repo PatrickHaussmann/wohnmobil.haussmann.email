@@ -54,7 +54,7 @@
         color: #737373;
       }
 
-      .marker-stars > img {
+      .marker-stars img {
         width: 1rem;
       }
 
@@ -63,6 +63,12 @@
         height: 1rem;
         display: inline-block;
         margin-right: 0.2rem;
+      }
+
+      .directions > img {
+        width: 2rem;
+        transform: translateY(-50%);
+        float: right;
       }
     </style>
   </head>
@@ -232,6 +238,7 @@
               else popupHtml += '<img src="/star.svg">';
             }
           }
+          popupHtml += '<a href="https://maps.google.com/?daddr='+element.lat+','+element.lon+'" class="directions"><img src="/directions.svg"></a>';
           popupHtml += "</div>";
 
           let marker = L.marker([element.lat, element.lon])
