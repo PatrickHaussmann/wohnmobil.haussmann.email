@@ -248,19 +248,18 @@
               else popupHtml += '<img src="/star.svg">';
             }
           }
+          let coordString = element.lat + "," + element.lon;
           popupHtml += "</div><div>";
           popupHtml +=
             '<a href="https://google.com/maps?daddr=' +
-            element.lat +
-            "," +
-            element.lon +
+            coordString +
             '" class="directions"><img src="/directions.svg"></a>';
           popupHtml +=
-            '<a href="https://google.com/maps?addr=' +
-            element.lat +
-            "," +
-            element.lon +
-            '" class="directions"><img src="/poi.svg"></a>';
+            '<a href="https://google.com/maps/place/' +
+            coordString +
+            "/@" +
+            coordString +
+            ',15z" class="directions"><img src="/poi.svg"></a>';
           popupHtml += "</div>";
 
           let marker = L.marker([element.lat, element.lon])
