@@ -279,7 +279,6 @@
 
         //marker.setIcon(divIcon);
 
-        //"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         var openstreetmap = L.tileLayer(
           "https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png",
           {
@@ -288,34 +287,7 @@
           }
         ).addTo(map);
 
-        //"https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png",
-        var light = L.tileLayer(
-          "https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png",
-          {
-            attribution:
-              '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
-            subdomains: "abcd",
-            maxZoom: 19,
-          }
-        ); //.addTo(map);
-
-        var voyager = L.tileLayer(
-          "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}.png",
-          {
-            attribution:
-              '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
-            subdomains: "abcd",
-            maxZoom: 19,
-          }
-        ); //.addTo(map);
-
         new L.control.scale({ imperial: false }).addTo(map);
-
-        var baseLayers = {
-          openstreetmap,
-          light,
-          voyager,
-        };
 
         var overlays = {};
         var overlayGroups = { 0: {}, 1: {}, 2: {} };
@@ -338,7 +310,7 @@
           }
         }
 
-        L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
+        L.control.layers({}, overlays, { collapsed: false }).addTo(map);
       }
     </script>
   </body>
