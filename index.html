@@ -10,7 +10,12 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.min.css"
     />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/leaflet-gps@1.7.7/src/leaflet-gps.min.css"
+    />
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-gps@1.7.7/src/leaflet-gps.min.js"></script>
 
     <style type="text/css">
       body {
@@ -173,6 +178,7 @@
         }
       }
 
+      var locationMarker, locationCircle;
       function initMap(data) {
         //58: { name: "Picknick/Rastplatz", color: "#3E6EF0", group: 1 },
         var types = {
@@ -193,7 +199,7 @@
             types[0] = { name: "Default", color: "#cc756b" };
           }
           /* if (!element.stars && ![27, 0].includes(element.type))
-                    element.stars = 2; */
+                          element.stars = 2; */
         });
 
         var map = L.map("map", {
@@ -251,15 +257,9 @@
           let coordString = element.lat + "," + element.lon;
           popupHtml += "</div><div>";
           popupHtml +=
-            '<a href="https://google.com/maps?daddr=' +
+            '<a href="https://google.com/maps?q=' +
             coordString +
             '" class="directions"><img src="/directions.svg"></a>';
-          popupHtml +=
-            '<a href="https://google.com/maps/place/' +
-            coordString +
-            "/@" +
-            coordString +
-            ',15z" class="directions"><img src="/poi.svg"></a>';
           popupHtml += "</div>";
 
           let marker = L.marker([element.lat, element.lon])
@@ -270,10 +270,10 @@
           //.setIcon(divIcon);
 
           /* if (element.type) {
-                    marker._icon.style.fill = types[element.type].color;
-                    console.log(types[element.type].color);
-                } else {
-                } */
+                          marker._icon.style.fill = types[element.type].color;
+                          console.log(types[element.type].color);
+                      } else {
+                      } */
         });
 
         //marker.setIcon(divIcon);
@@ -310,6 +310,45 @@
         }
 
         L.control.layers({}, overlays, { collapsed: false }).addTo(map);
+
+        map.addControl(
+          new L.Control.Gps({
+            title: "Meinen Standort anzeigen",
+            accuracy: true,
+          })
+        );
+
+        /* function onLocationFound(e) {
+          var radius = e.accuracy / 2;
+
+          if (locationMarker) {
+            locationMarker.setLatLng(e.latlng);
+          } else {
+            locationMarker = L.marker(e.latlng)
+              .addTo(map)
+              .bindPopup("Du bist hier.");
+          }
+
+          if (locationCircle) {
+            locationCircle.setLatLng(e.latlng);
+            locationCircle.setRadius(radius);
+          } else {
+            locationCircle = L.circle(e.latlng, radius).addTo(map);
+          }
+        }
+
+        map.on("locationfound", onLocationFound);
+        map.on("locationerror", (error) => {
+          if (locationMarker) map.removeLayer(locationMarker);
+          if (locationCircle) map.removeLayer(locationCircle);
+          locationMarker = undefined;
+          locationCircle = undefined;
+        });
+
+        map.locate({ watch: true });
+ */
+        //stop:
+        //map.stopLocate();
       }
     </script>
   </body>
